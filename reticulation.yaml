@@ -1,0 +1,363 @@
+########################################
+#
+#   This is a full reticulation
+#   control package using ESPHOMEYAML
+#   as the soleniod control via a NodeMCU
+#   Weather adaptive watering control to
+#   be added later
+#
+########################################
+
+homeassistant:
+  customize:
+    switch.retic_station_1_valve:
+      icon: mdi:water-pump
+    switch.retic_station_2_valve:
+      icon: mdi:water-pump
+
+
+
+
+
+
+
+  - platform: template    # determine if today is selected as a watering day for program 1
+    sensors:
+      retic_program1_watering_day:
+        value_template:  >
+          {% set sensor_names = [ 'monday', 'tuesday', 'wednesday','thursday','friday','saturday','sunday'] %}
+          {% set today_name = sensor_names[now().weekday()] %}
+          {% set entity_id = 'input_boolean.retic_program1_'+today_name %}
+          {{ is_state(entity_id, 'on') }}
+
+      retic_program2_watering_day:
+        value_template:  >
+          {% set sensor_names = [ 'monday', 'tuesday', 'wednesday','thursday','friday','saturday','sunday'] %}
+          {% set today_name = sensor_names[now().weekday()] %}
+          {% set entity_id = 'input_boolean.retic_program2_'+today_name %}
+          {{ is_state(entity_id, 'on') }}
+
+#   Calculations for rain to stop reticulation
+
+# TO BE COMPLETED LATER....
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+input_datetime:
+  retic_program1_start_time:    # program start time control
+    name: Program 1 Start Time
+    has_date: false
+    has_time: true
+
+  retic_program2_start_time:
+    name: Program 2 Start Time
+    has_date: false
+    has_time: true
+
+
+input_number:
+  retic_program1_station1_run_time:   # station run time control
+    name: Station 1 Run Time
+    min: 0
+    max: 30
+    step: 1
+    icon: mdi:camera-timer
+
+  retic_program1_station2_run_time:
+    name: Station 2 Run Time
+    min: 0
+    max: 30
+    step: 1
+    icon: mdi:camera-timer
+
+  retic_program2_station1_run_time:
+    name: Station 1 Run Time
+    min: 0
+    max: 30
+    step: 1
+    icon: mdi:camera-timer
+
+  retic_program2_station2_run_time:
+    name: Station 2 Run Time
+    min: 0
+    max: 30
+    step: 1
+    icon: mdi:camera-timer
+
+input_boolean:
+  retic_program1_monday:   # watering day selections for program 1
+    name: Monday
+
+  retic_program1_tuesday:
+    name: Tuesday
+
+  retic_program1_wednesday:
+    name: Wednesday
+
+  retic_program1_thursday:
+    name: Thursday
+
+  retic_program1_friday:
+    name: Friday
+
+  retic_program1_saturday:
+    name: Saturday
+
+  retic_program1_sunday:
+    name: Sunday
+
+  retic_program2_monday:   # watering day selections for program 2
+    name: Monday
+
+  retic_program2_tuesday:
+    name: Tuesday
+
+  retic_program2_wednesday:
+    name: Wednesday
+
+  retic_program2_thursday:
+    name: Thursday
+
+  retic_program2_friday:
+    name: Friday
+
+  retic_program2_saturday:
+    name: Saturday
+
+  retic_program2_sunday:
+    name: Sunday
+
+
+  retic_program1_enable:
+    name: Enable
+
+  retic_program2_enable:
+    name: Enable
+
+
+group:                  # frontend interface setup
+  retic_manual:
+    control: hidden
+    name: 'Manual Control'
+    entities:
+      - switch.retic_station_1_valve
+      - switch.retic_station_2_valve
+
+  retic_program1:
+    control: hidden
+    name: 'Program 1'
+    entities:
+      - input_boolean.retic_program1_enable
+      - script.retic_program1_run
+      - input_datetime.retic_program1_start_time
+      - group.retic_program1_watering_days
+      - group.retic_program1_run_times
+
+  retic_program2:
+    control: hidden
+    name: 'Program 2'
+    entities:
+      - input_boolean.retic_program2_enable
+      - script.retic_program2_run
+      - input_datetime.retic_program2_start_time
+      - group.retic_program2_watering_days
+      - group.retic_program2_run_times
+
+  retic_program1_watering_days:
+    control: hidden
+    name: 'Watering days'
+    icon: mdi:calendar-multiple-check
+    entities:
+      - input_boolean.retic_program1_monday
+      - input_boolean.retic_program1_tuesday
+      - input_boolean.retic_program1_wednesday
+      - input_boolean.retic_program1_thursday
+      - input_boolean.retic_program1_friday
+      - input_boolean.retic_program1_saturday
+      - input_boolean.retic_program1_sunday
+
+  retic_program2_watering_days:
+    control: hidden
+    name: 'Watering days'
+    icon: mdi:calendar-multiple-check
+    entities:
+      - input_boolean.retic_program2_monday
+      - input_boolean.retic_program2_tuesday
+      - input_boolean.retic_program2_wednesday
+      - input_boolean.retic_program2_thursday
+      - input_boolean.retic_program2_friday
+      - input_boolean.retic_program2_saturday
+      - input_boolean.retic_program2_sunday
+
+  retic_program1_run_times:
+    control: hidden
+    name: 'Run times'
+    icon: mdi:camera-timer
+    entities:
+      - input_number.retic_program1_station1_run_time
+      - input_number.retic_program1_station2_run_time
+
+  retic_program2_run_times:
+    control: hidden
+    name: 'Run times'
+    icon: mdi:camera-timer
+    entities:
+      - input_number.retic_program2_station1_run_time
+      - input_number.retic_program2_station2_run_time
+
+
+switch:                      # Solenoid control (will be signals to NodeMCU)
+  - platform: mqtt
+    name: "Retic Station 1 Valve"
+    state_topic: "/nodemcu/gpio/4"
+    command_topic: "/nodemcu/gpio/4"
+    payload_on: "0"
+    payload_off: "1"
+    optimistic: false
+    qos: 0
+    retain: true
+
+  - platform: mqtt
+    name: "Retic Station 2 Valve"
+    state_topic: "/nodemcu/gpio/5"
+    command_topic: "/nodemcu/gpio/5"
+    payload_on: "0"
+    payload_off: "1"
+    optimistic: false
+    qos: 0
+    retain: true
+
+  - name: "sprinkler #0"
+    platform: mqtt
+    state_topic: sprinkler/relay/0
+    command_topic: sprinkler/relay/0/set
+    payload_on: 1
+    payload_off: 0
+    availability_topic: sprinkler/status
+    payload_available: 1
+    payload_not_available: 0
+    optimistic: false
+    qos: 0
+    retain: true
+
+  - name: "sprinkler #1"
+    platform: mqtt
+    state_topic: sprinkler/relay/1
+    command_topic: sprinkler/relay/1/set
+    payload_on: 1
+    payload_off: 0
+    availability_topic: sprinkler/status
+    payload_available: 1
+    payload_not_available: 0
+
+#switch:                      # Solenoid control (will be signals to NodeMCU) NOT USED HERE BECAUSE CONTROL IS NOW VIA ESPHOMEYAML ADDON
+#  - platform: mqtt
+#    name: "Retic Station 1 Valve"
+#    state_topic: "retic/station1/state"
+#    command_topic: "retic/station1/cmd"
+#    payload_on: "1"
+#    payload_off: "0"
+#    optimistic: false
+#    qos: 0
+#    retain: true
+
+#  - platform: mqtt
+#    name: "Retic Station 2 Valve"
+#    state_topic: "retic/station2/state"
+#    command_topic: "retic/station2/cmd"
+#    payload_on: "1"
+#    payload_off: "0"
+#    optimistic: false
+#    qos: 0
+#    retain: true
+
+
+automation:
+  - alias: Reticulation Run Program 1     # start program 1 at designated time if it is enabled and today is selected as a watering day
+    initial_state: 'on'
+    trigger:
+      platform: template
+      value_template: "{{ states('sensor.time') == (states.input_datetime.retic_program1_start_time.attributes.timestamp | int | timestamp_custom('%H:%M', False)) }}"
+    condition:
+      condition: and
+      conditions:
+        - condition: state
+          entity_id: input_boolean.retic_program1_enable
+          state: 'on'
+        - condition: state
+          entity_id: sensor.retic_program1_watering_day
+          state: 'True'
+    action:
+      - service: script.turn_on
+        entity_id: script.retic_program1_run
+
+  - alias: Reticulation Run Program 2     # start program 2 at designated time if it is enabled and today is selected as a watering day
+    initial_state: 'on'
+    trigger:
+      platform: template
+      value_template: "{{ states('sensor.time') == (states.input_datetime.retic_program2_start_time.attributes.timestamp | int | timestamp_custom('%H:%M', False)) }}"
+    condition:
+      condition: and
+      conditions:
+        - condition: state
+          entity_id: input_boolean.retic_program2_enable
+          state: 'on'
+        - condition: state
+          entity_id: sensor.retic_program2_watering_day
+          state: 'True'
+    action:
+      - service: script.turn_on
+        entity_id: script.retic_program2_run
+
+
+script:
+  retic_program1_run:             #run retic program 1 through each station for selected time
+    alias: Program 1 Run
+    sequence:
+      - service: switch.turn_on
+        data:
+          entity_id: switch.retic_station_1_valve
+      - delay: "00:{{ states('input_number.retic_program1_station1_run_time')|int }}:00"
+      - service: switch.turn_off
+        data:
+          entity_id: switch.retic_station_1_valve
+      - service: switch.turn_on
+        data:
+          entity_id: switch.retic_station_2_valve
+      - delay: "00:{{ states('input_number.retic_program1_station2_run_time')|int }}:00"
+      - service: switch.turn_off
+        data:
+          entity_id: switch.retic_station_2_valve
+
+  retic_program2_run:             #run retic program 2 through each station for selected time
+    alias: Program 2 Run
+    sequence:
+      - service: switch.turn_on
+        data:
+          entity_id: switch.retic_station_1_valve
+      - delay: "00:{{ states('input_number.retic_program2_station1_run_time')|int }}:00"
+      - service: switch.turn_off
+        data:
+          entity_id: switch.retic_station_1_valve
+      - service: switch.turn_on
+        data:
+          entity_id: switch.retic_station_2_valve
+      - delay: "00:{{ states('input_number.retic_program2_station2_run_time')|int }}:00"
+      - service: switch.turn_off
+        data:
+          entity_id: switch.retic_station_2_valve
+	
